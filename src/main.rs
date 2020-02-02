@@ -35,9 +35,12 @@ async fn get_group_id_by_name(gitlab: &str, token: &str, groups: Vec<&str>) -> s
     while count > 0{
         let url = "/api/v4/groups?page=".to_owned() + &format!("{}", page).to_owned() + "&per_page=10&all=False" ; 
 
-        let res = get_from_gitlab(gitlab, token, url.as_str()).await?;
+        let res = get_from_gitlab(gitlab, token, url.as_str())
+            .await?;
 
-        let g : Vec<ProjectGroup> = res.json().await.expect("Panic!");
+        let g : Vec<ProjectGroup> = res.json()
+            .await
+            .expect("Panic!");
 
         if g.len() > 0 {
             for i in g{
@@ -64,23 +67,27 @@ async fn get_project_ids_for_group(gitlab : &str, token: &str, group: u32) -> st
     let mut res : Vec<Project> = Vec::new();
 
     let url = "/api/v4/groups/".to_owned() + &format!("{}", group).to_owned() + "/projects/?page=" + &format!("{}", page_id) + "&per_page=10&all=False" ; 
-    let page = get_from_gitlab(gitlab, token, &url.as_str() ).await?;
+    let page = get_from_gitlab(gitlab, token, &url.as_str() )
+        .await?;
 
-    let mut page_json : Vec<Project> = page.json().await.expect("Panicking!");
+    let mut page_json : Vec<Project> = page.json()
+        .await
+        .expect("Panicking!");
 
     res.append(& mut page_json);
 
     while page_json.len() > 0 {
         page_id += 1;
 
-        let page = get_from_gitlab(gitlab, token, &url.as_str() ).await?;
+        let page = get_from_gitlab(gitlab, token, &url.as_str() )
+            .await?;
 
-        let mut page_json : Vec<Project> = page.json().await.expect("Panicking!");
+        let mut page_json : Vec<Project> = page.json()
+            .await
+            .expect("Panicking!");
 
-    res.append(& mut page_json);
+        res.append(& mut page_json);
     }
-
-    //println!("{:?}", page_json);
 
     Ok(res)
 
@@ -90,9 +97,12 @@ async fn get_pipeline(gitlab : &str, token: &str, project: u32) -> std::result::
 
     let url = "/api/v4/projects/".to_owned() + &format!("{}", project).to_owned() + "/pipelines/?page=1&per_page=1&all=False" ; 
 
-    let page = get_from_gitlab(gitlab, token, &url.as_str()).await?;
+    let page = get_from_gitlab(gitlab, token, &url.as_str())
+        .await?;
 
-    let page_json : Vec<Pipeline> = page.json().await.expect("Panicking");
+    let page_json : Vec<Pipeline> = page.json()
+        .await
+        .expect("Panicking");
 
     let res = page_json[0].clone();
 
@@ -131,8 +141,6 @@ async fn get_pipeline_status_by_group(gitlab: &str, token: &str, groups: Vec<Pro
         }
     }
 
-//    println!("{:?}",res);
-        
     Ok(res)
 
 }
@@ -170,7 +178,10 @@ async fn main() -> Result<(), reqwest::Error> {
     println!("Value for token: {:?}", token);
     // println!("Value for groups: {:?}, it contains {} elements", groups, count);
 
-    let t = get_group_id_by_name(gitlab, token, groups).await.expect("Panicking!");
+    let t = get_group_id_by_name(gitlab, token, groups)
+        .await
+        .unwrap();
+        //.expect("Panicking!");
     let u = get_pipeline_status_by_group(gitlab, token, t);
     println!("{:?}", u.await);
 
