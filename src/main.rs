@@ -7,23 +7,39 @@ extern crate tokio;
 
 use clap::{Arg, App};
 use serde_derive::Deserialize;
+use serde_derive::Serialize;
+use serde::{Serialize, Deserialize};
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct ProjectGroup {
     name: String,
     id: u32,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct Project {
     name: String,
     id: u32,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct Pipeline {
     id: u32,
     status: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct ProjectStatus {
+    id: u32,
+    name: String,
+    status: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct GroupStatus {
+    name: String,
+    id: u32,
+    projects : Vec<ProjectStatus>
 }
 
 struct Gitlab {
@@ -133,20 +149,32 @@ impl Gitlab {
 
     }
 
-    async fn get_pipeline_status_by_group(&self, groups: Vec<ProjectGroup>) -> std::result::Result<Vec<Project>, &'static str>{
+    async fn get_pipeline_status_by_group(&self, groups: Vec<ProjectGroup>) -> std::result::Result<Vec<GroupStatus>, &'static str>{
 
-        let res : Vec<Project> = Vec::new();
+        let mut res : Vec<GroupStatus> = Vec::new();
 
         for group in groups{
+            let mut g = GroupStatus{
+                name : group.name,
+                id : group.id,
+                projects : Vec::new(),
+            };
             let t = self.get_project_ids_for_group(group.id);
             let a = t.await?;
-            println!("{}", group.name);
+            // println!("{}", group.name);
             for r in a{
                 let t = self.get_pipeline(r.id);
                 let j = t.await?;
-                println!("{} : {:?}",r.name, j.status);
+                let mut p = ProjectStatus {
+                    id : r.id,
+                    name : r.name,
+                    status : j.status,
+                };
+                g.projects.push(p)
+                // println!("{} : {:?}",r.name, j.status);
 
             }
+            res.push(g);
         }
 
         Ok(res)
@@ -184,8 +212,8 @@ async fn main() -> Result<(), reqwest::Error> {
     let groups: Vec<&str> = matches.values_of("groups").unwrap().collect();
     // let mut count = groups.len();
 
-    println!("Value for gitlab: {:?}", gitlab);
-    println!("Value for token: {:?}", token);
+    // println!("Value for gitlab: {:?}", gitlab);
+    // println!("Value for token: {:?}", token);
     // println!("Value for groups: {:?}, it contains {} elements", groups, count);
     let g = Gitlab {
         url : gitlab.to_owned(),
@@ -197,7 +225,8 @@ async fn main() -> Result<(), reqwest::Error> {
         .unwrap();
         //.expect("Panicking!");
     let u = g.get_pipeline_status_by_group(t);
-    println!("{:?}", u.await);
+    // println!("{:?}", u.await.unwrap());
+    println!("{}",  serde_json::to_string(&u.await.unwrap()).unwrap());
 
     Ok(())
 
